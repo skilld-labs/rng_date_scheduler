@@ -1,0 +1,7 @@
+name: RNG Date Scheduler (Experimental)
+type: module
+description: 'Date scheduler.'
+package: RNG
+core: 8.x
+dependencies:
+  - rng
