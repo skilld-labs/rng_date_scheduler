@@ -1,5 +1,8 @@
 RNG date scheduler.
 
+Proactively controls whether a user can register based on date fields attached
+to an entity.
+
 Copyright (C) 2016 [Daniel Phin](http://dpi.id.au) ([@dpi](https://www.drupal.org/u/dpi))
 
 # License
@@ -17,3 +20,31 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along
 with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# Notice
+
+The module has not been thoroughly tested. Expect weird behaviour.
+
+The module currently only works with datetime fields (must have time, not 
+date-only) despite claims made by user interface ('during' checkboxes).
+
+# Installation
+
+ 1. Enable module.
+ 2. Add date fields to your event entity type (examples: start date, end date)
+ 3. Edit the Event Type associated with your event entity type
+ 4. Go to 'Date scheduler' tab.
+ 5. Configure the form.
+
+# Debugging
+
+The module provides a user interface for each event explaining how dates
+on the event affect the ability to create new registrations. You can find this
+interface in the event settings:
+
+ 1. View your event entity.
+ 2. Go to 'Event' tab.
+ 3. Go to 'Dates' sub tab.
+
+The output of this page can be controlled by modifying the values of date fields
+on the event entity.
