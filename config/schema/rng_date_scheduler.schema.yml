@@ -1,0 +1,28 @@
+rng.event_type.*.*.third_party.rng_date_scheduler:
+  type: mapping
+  mapping:
+    default_access:
+      type: integer
+      label: 'Default'
+    fields:
+      type: sequence
+      sequence:
+        type: rng_date_scheduler.field
+
+rng_date_scheduler.field:
+  type: mapping
+  mapping:
+    field_name:
+      type: string
+    access:
+      type: mapping
+      mapping:
+        before:
+          type: integer
+          label: 'Before'
+        during:
+          type: integer
+          label: 'During'
+        after:
+          type: integer
+          label: 'After'

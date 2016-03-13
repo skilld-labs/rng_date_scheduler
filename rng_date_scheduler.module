@@ -1,0 +1,87 @@
+<?php
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Access\AccessResult;
+
+/**
+ * Implements hook_entity_type_build().
+ */
+function rng_date_scheduler_entity_type_build(array &$entity_types) {
+  /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
+  $entity_types['event_type']->setFormClass('date_scheduler', 'Drupal\rng_date_scheduler\Form\EventTypeDateSchedulerForm');
+}
+
+/**
+ * Implements hook_entity_create_access().
+ */
+function rng_date_scheduler_entity_create_access(AccountInterface $account, $context, $entity_bundle) {
+  $event = NULL;
+  if (isset($context['entity_type_id']) && $context['entity_type_id'] == 'registration') {
+    if (isset($context['event'])) {
+      $event = $context['event'];
+    }
+  }
+
+  if ($event instanceof EntityInterface) {
+    /** @var \Drupal\rng\EventManagerInterface $event_manager */
+    $event_manager = \Drupal::service('rng.event_manager');
+    $event_type = $event_manager->eventType($event->getEntityTypeId(), $event->bundle());
+
+    $dates = rng_date_scheduler_get($event);
+
+    if (!count($dates)) {
+      $default_access = $event_type->getThirdPartySetting('rng_date_scheduler', 'default_access', 0);
+      return AccessResult::forbiddenIf($default_access == -1)
+        ->addCacheableDependency($event);
+    }
+
+    ksort($dates);
+    $now = \Drupal::request()->server->get('REQUEST_TIME');
+
+    $previous_after = FALSE;
+    foreach ($dates as $timestamp => $access) {
+      $before = $access['before'] == '-1';
+      $after = $access['after'] == '-1';
+
+      if ($now < $timestamp) {
+        return AccessResult::forbiddenIf($before || $previous_after)
+          ->addCacheableDependency($event);
+      }
+
+      $previous_after = $after;
+    }
+
+    if ($previous_after) {
+      return AccessResult::forbidden()
+        ->addCacheableDependency($event);
+    }
+  }
+
+  return AccessResult::neutral()
+    ->addCacheableDependency($event);
+}
+
+function rng_date_scheduler_get(EntityInterface $event) {
+  /** @var \Drupal\rng\EventManagerInterface $event_manager */
+  $event_manager = \Drupal::service('rng.event_manager');
+  $event_type = $event_manager->eventType($event->getEntityTypeId(), $event->bundle());
+
+  $dates = [];
+  foreach ($event_type->getThirdPartySetting('rng_date_scheduler', 'fields', []) as $field) {
+    if (isset($field['field_name'])) {
+      $field_name = $field['field_name'];
+      if (isset($event->{$field_name}->date)) {
+        /** @var \Drupal\Core\Datetime\DrupalDateTime $date */
+        $date = $event->{$field_name}->date;
+        $access = $field['access'];
+        $timestamp = $date->format('U');
+        $dates[$timestamp] = $access;
+      }
+    }
+  }
+
+  ksort($dates);
+
+  return $dates;
+}

@@ -1,0 +1,22 @@
+table.rng-date-scheduler-explain {
+  table-layout: fixed;
+}
+table.rng-date-scheduler-explain .forbidden {
+  background-color: #f77;
+}
+table.rng-date-scheduler-explain .neutral {
+  background-color: #fff;
+}
+table.rng-date-scheduler-explain tr.current-indicator {
+  background-color: transparent;
+}
+table.rng-date-scheduler-explain tr.current-indicator td {
+  border-bottom: 3px solid #f8f8f8;
+}
+table.rng-date-scheduler-explain tr.current-indicator td.active-time {
+  font-weight: bold;
+  border-bottom: 3px solid #333;
+}
+table.rng-date-scheduler-explain td {
+  text-align: center;
+}
