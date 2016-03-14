@@ -17,37 +17,17 @@ use Drupal\Core\Datetime\DrupalDateTime;
 class DateExplain extends ControllerBase {
 
   public function eventDates(EntityInterface $rng_event) {
-    /** @var \Drupal\rng\EventManagerInterface $event_manager */
-//    $event_manager = \Drupal::service('rng.event_manager');
-//    $event_type = $event_manager->eventType($rng_event->getEntityTypeId(), $rng_event->bundle());
-
-    $dates = rng_date_scheduler_get($rng_event);
-//    foreach (rng_date_scheduler_get($rng_event) as $data) {
-//      $dates[] = [
-//        'fn' => $data['field_name'],
-//        'date' => $data['date'],
-//        'actions' => [
-//          'before' => $data['access']['before'] == -1 ? 'forbidden' : 'neutral',
-//          'after' => $data['access']['after'] == -1 ? 'forbidden' : 'neutral',
-//        ],
-//      ];
-//    }
-
     $render = [];
-    $now = DrupalDateTime::createFromTimestamp(\Drupal::request()->server->get('REQUEST_TIME'));
-
-    $row_dates = [];
-
-    $current = FALSE;
-
     $render['#attached']['library'][] = 'rng_date_scheduler/rng_date_scheduler.user';
 
-    $previous_after = NULL;
     $row = [];
+    $row_dates = [];
+
+    $previous_after = NULL;
+    $dates = rng_date_scheduler_get($rng_event);
     foreach ($dates as $date) {
       /** @var \Drupal\datetime\Plugin\Field\FieldType\DateTimeFieldItemList $field_item_list */
       $field_item_list = $rng_event->{$date->getFieldName()};
-//      $d->getSettings();
 
       $before = $date->canAccessBefore();
       $after = $date->canAccessAfter();
@@ -71,8 +51,10 @@ class DateExplain extends ControllerBase {
     ];
 
     // Add the date indicator row.
+    $now = DrupalDateTime::createFromTimestamp(\Drupal::request()->server->get('REQUEST_TIME'));
     $row_indicator = [];
     $d = 0;
+    $current = FALSE;
     for ($i = 0; $i < count($row); $i+=2) {
       // !isset detects after last day, as the index does not exist.
       if (!$current && (!isset($dates[$d]) || $now < $dates[$d]->getDate())) {

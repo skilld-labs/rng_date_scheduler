@@ -76,28 +76,35 @@ class EventTypeDateSchedulerForm extends EntityForm {
         ],
         [
           'data' => $this->t('Description'),
-          'width' => '15%',
+          'width' => '20%',
+        ],
+        [
+          'data' => $this->t('Enabled'),
+          'width' => '10%',
         ],
         [
           'data' => $this->t('Before'),
-          'width' => '25%',
+          'width' => '20%',
         ],
         [
           'data' => $this->t('During'),
-          'width' => '25%',
+          'width' => '20%',
         ],
         [
           'data' => $this->t('After'),
-          'width' => '25%',
+          'width' => '20%',
         ],
       ],
       '#empty' => $this->t('There are no date fields attached to this entity type.'),
     ];
 
     $fields = [];
+    $status = [];
     foreach ($event_type->getThirdPartySetting('rng_date_scheduler', 'fields', []) as $field) {
       if (isset($field['field_name'])) {
-        $fields[$field['field_name']] = $field['access'];
+        $field_name = $field['field_name'];
+        $status[$field_name] = !empty($field['status']);
+        $fields[$field_name] = $field['access'];
       }
     }
 
@@ -113,13 +120,20 @@ class EventTypeDateSchedulerForm extends EntityForm {
 
         $row = [];
 
-        $row[] = [
+        $row['label'] = [
           '#plain_text' => $field_definition->getLabel(),
         ];
 
         $description = $field_definition->getDescription() ?: $this->t('None');
-        $row[] = [
+        $row['description'] = [
           '#plain_text' => $description,
+        ];
+
+        $row['status'] = [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Status'),
+          '#title_display' => 'invisible',
+          '#default_value' => $status[$field_name],
         ];
 
         $row['before'] = [
@@ -166,12 +180,16 @@ class EventTypeDateSchedulerForm extends EntityForm {
     $default = $form_state->getValue('default') ? -1 : 0;
 
     $fields = [];
-    foreach ($form_state->getValue('table') as $field_name => $rights) {
+    foreach ($form_state->getValue('table') as $field_name => $row) {
       $field = [];
+      $field['status'] = (boolean) $row['status'];
       $field['field_name'] = $field_name;
-      foreach ($rights as $time => $deny_registrations) {
+
+      foreach (['before', 'during', 'after'] as $time) {
+        $deny_registrations = !empty($row[$time]);
         $field['access'][$time] = $deny_registrations ? -1 : 0;
       }
+
       $fields[] = $field;
     }
 

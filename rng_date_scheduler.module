@@ -75,7 +75,7 @@ function rng_date_scheduler_get(EntityInterface $event) {
 
   $dates = [];
   foreach ($event_type->getThirdPartySetting('rng_date_scheduler', 'fields', []) as $field) {
-    if (isset($field['field_name'])) {
+    if (isset($field['field_name']) && !empty($field['status'])) {
       $field_name = $field['field_name'];
 
       /** @var \Drupal\datetime\Plugin\Field\FieldType\DateTimeFieldItemList $field_item_list */
