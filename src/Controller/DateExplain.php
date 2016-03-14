@@ -17,9 +17,11 @@ use Drupal\Core\Datetime\DrupalDateTime;
 class DateExplain extends ControllerBase {
 
   public function eventDates(EntityInterface $rng_event) {
-    $render = [];
-    $render['#cache']['tags'] = $rng_event->getCacheTagsToInvalidate();
-    $render['#attached']['library'][] = 'rng_date_scheduler/rng_date_scheduler.user';
+    $build = [];
+    $build['#cache']['keys'] = ['rng_date_explain', $rng_event->getEntityTypeId(), $rng_event->id()];
+    $build['#cache']['tags'] = $rng_event->getCacheTagsToInvalidate();
+    $build['#cache']['contexts'] = ['url'];
+    $build['#attached']['library'][] = 'rng_date_scheduler/rng_date_scheduler.user';
 
     $row = [];
     $row_dates = [];
@@ -46,7 +48,7 @@ class DateExplain extends ControllerBase {
 
     $row[] = $this->permittedCell([$previous_after]);
 
-    $render['table'] = [
+    $build['table'] = [
       '#type' => 'table',
       '#attributes' => ['class' => 'rng-date-scheduler-explain']
     ];
@@ -72,13 +74,13 @@ class DateExplain extends ControllerBase {
       $d++;
     }
 
-    $render['table'][] = $row;
-    $render['table']['dates'] = $row_dates;
-    $render['table']['indicator'] = $row_indicator;
-    $render['table']['indicator']['#attributes'] = ['class' => ['current-indicator']];
+    $build['table'][] = $row;
+    $build['table']['dates'] = $row_dates;
+    $build['table']['indicator'] = $row_indicator;
+    $build['table']['indicator']['#attributes'] = ['class' => ['current-indicator']];
 
     if (!count($dates)) {
-      unset($render['table']);
+      unset($build['table']);
     }
 
     $messages = [];
@@ -118,14 +120,14 @@ class DateExplain extends ControllerBase {
     }
 
     if ($messages) {
-      $render['messages'] = [
+      $build['messages'] = [
         '#title' => $this->t('Date fields'),
         '#theme' => 'item_list',
         '#items' => $messages,
       ];
     }
 
-    return $render;
+    return $build;
   }
 
   function permittedCell(array $access) {
