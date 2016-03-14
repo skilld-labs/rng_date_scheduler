@@ -26,6 +26,14 @@ function rng_date_scheduler_entity_create_access(AccountInterface $account, $con
   }
 
   if ($event instanceof EntityInterface) {
+    $result = _rng_date_scheduler_entity_create_access($event);
+    return $result->addCacheableDependency($event);
+  }
+
+  return AccessResult::neutral();
+}
+
+function _rng_date_scheduler_entity_create_access(EntityInterface $event) {
     /** @var \Drupal\rng\EventManagerInterface $event_manager */
     $event_manager = \Drupal::service('rng.event_manager');
     $event_type = $event_manager->eventType($event->getEntityTypeId(), $event->bundle());
@@ -34,8 +42,7 @@ function rng_date_scheduler_entity_create_access(AccountInterface $account, $con
 
     if (!count($dates)) {
       $default_access = $event_type->getThirdPartySetting('rng_date_scheduler', 'default_access', 0);
-      return AccessResult::forbiddenIf($default_access == -1)
-        ->addCacheableDependency($event);
+      return AccessResult::forbiddenIf($default_access == -1);
     }
 
     $now = DrupalDateTime::createFromTimestamp(\Drupal::request()->server->get('REQUEST_TIME'));
@@ -43,24 +50,19 @@ function rng_date_scheduler_entity_create_access(AccountInterface $account, $con
     $previous_after = NULL;
     foreach ($dates as $date) {
       $before = $date->canAccessBefore();
-      $after = $date->canAccessBefore();
+      $after = $date->canAccessAfter();
 
       if ($now < $date->getDate()) {
+        // If this is not the last date slot, add max age until the date.
+        $time_until = $date->getDate()->format('U') - $now->format('U');
         return AccessResult::forbiddenIf(in_array(FALSE, [$previous_after, $before], TRUE))
-          ->addCacheableDependency($event);
+          ->setCacheMaxAge($time_until);
       }
 
       $previous_after = $after;
     }
 
-    if ($previous_after) {
-      return AccessResult::forbidden()
-        ->addCacheableDependency($event);
-    }
-  }
-
-  return AccessResult::neutral()
-    ->addCacheableDependency($event);
+  return AccessResult::forbiddenIf($previous_after === FALSE);
 }
 
 /**

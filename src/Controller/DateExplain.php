@@ -55,7 +55,7 @@ class DateExplain extends ControllerBase {
     $row_indicator = [];
     $d = 0;
     $current = FALSE;
-    for ($i = 0; $i < count($row); $i+=2) {
+    for ($i = 0; $i < count($row); $i += 2) {
       // !isset detects after last day, as the index does not exist.
       if (!$current && (!isset($dates[$d]) || $now < $dates[$d]->getDate())) {
         $row_indicator[] = [
@@ -75,6 +75,48 @@ class DateExplain extends ControllerBase {
     $render['table']['dates'] = $row_dates;
     $render['table']['indicator'] = $row_indicator;
     $render['table']['indicator']['#attributes'] = ['class' => ['current-indicator']];
+
+    if (!count($dates)) {
+      unset($render['table']);
+    }
+
+    $messages = [];
+
+    /** @var \Drupal\rng\EventManagerInterface $event_manager */
+    $event_manager = \Drupal::service('rng.event_manager');
+    $event_type = $event_manager->eventType($rng_event->getEntityTypeId(), $rng_event->bundle());
+
+    $fields = $event_type->getThirdPartySetting('rng_date_scheduler', 'fields', []);
+    $enabled_fields = 0;
+    foreach ($fields as $field) {
+      if (isset($field['field_name']) && !empty($field['status'])) {
+        $enabled_fields++;
+        // Determine fields without dates.
+        $field_name = $field['field_name'];
+        $field_item_list = $rng_event->{$field_name};
+        if ($field_item_list && !count($field_item_list)) {
+          $field_label = $field_item_list->getFieldDefinition()
+            ->getLabel();
+          $messages[] = $this->t('%label is not used as it does not contain a date.', [
+            '%label' => $field_label,
+          ]);
+        }
+      }
+    }
+
+    if (!$enabled_fields) {
+      // @todo. Do not show 'Date' tab if no date fields are configured.
+      // @todo. Remove this message.
+      $messages[] = $this->t('No dates fields are configured for events of this type.');
+    }
+
+    if ($messages) {
+      $render['messages'] = [
+        '#title' => $this->t('Date fields'),
+        '#theme' => 'item_list',
+        '#items' => $messages,
+      ];
+    }
 
     return $render;
   }
