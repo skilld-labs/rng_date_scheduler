@@ -21,17 +21,17 @@ class DateExplain extends ControllerBase {
 //    $event_manager = \Drupal::service('rng.event_manager');
 //    $event_type = $event_manager->eventType($rng_event->getEntityTypeId(), $rng_event->bundle());
 
-    $dates = [];
-    foreach (rng_date_scheduler_get($rng_event) as $data) {
-      $dates[] = [
-        'fn' => $data['field_name'],
-        'date' => $data['date'],
-        'actions' => [
-          'before' => $data['access']['before'] == -1 ? 'forbidden' : 'neutral',
-          'after' => $data['access']['after'] == -1 ? 'forbidden' : 'neutral',
-        ],
-      ];
-    }
+    $dates = rng_date_scheduler_get($rng_event);
+//    foreach (rng_date_scheduler_get($rng_event) as $data) {
+//      $dates[] = [
+//        'fn' => $data['field_name'],
+//        'date' => $data['date'],
+//        'actions' => [
+//          'before' => $data['access']['before'] == -1 ? 'forbidden' : 'neutral',
+//          'after' => $data['access']['after'] == -1 ? 'forbidden' : 'neutral',
+//        ],
+//      ];
+//    }
 
     $render = [];
     $now = DrupalDateTime::createFromTimestamp(\Drupal::request()->server->get('REQUEST_TIME'));
@@ -46,16 +46,16 @@ class DateExplain extends ControllerBase {
     $row = [];
     foreach ($dates as $date) {
       /** @var \Drupal\datetime\Plugin\Field\FieldType\DateTimeFieldItemList $field_item_list */
-      $field_item_list = $rng_event->{$date['fn']};
+      $field_item_list = $rng_event->{$date->getFieldName()};
 //      $d->getSettings();
 
-      $before = $date['actions']['before'];
-      $after = $date['actions']['after'];
+      $before = $date->canAccessBefore();
+      $after = $date->canAccessAfter();
 
-      $row[] = $this->permittedCell($previous_after == 'forbidden' || $before == 'forbidden');
+      $row[] = $this->permittedCell([$previous_after, $before]);
 
       $row_dates[]['#plain_text'] = \Drupal::service('date.formatter')
-        ->format($date['date']->format('U'), 'long');
+        ->format($date->getDate()->format('U'), 'long');
 
       $row[]['#plain_text'] = $field_item_list->getFieldDefinition()
         ->getLabel();
@@ -63,7 +63,7 @@ class DateExplain extends ControllerBase {
       $previous_after = $after;
     }
 
-    $row[] = $this->permittedCell($previous_after == 'forbidden');
+    $row[] = $this->permittedCell([$previous_after]);
 
     $render['table'] = [
       '#type' => 'table',
@@ -75,7 +75,7 @@ class DateExplain extends ControllerBase {
     $d = 0;
     for ($i = 0; $i < count($row); $i+=2) {
       // !isset detects after last day, as the index does not exist.
-      if (!$current && (!isset($dates[$d]) || $now < $dates[$d]['date'])) {
+      if (!$current && (!isset($dates[$d]) || $now < $dates[$d]->getDate())) {
         $row_indicator[] = [
           '#markup' => $this->t('Now'),
           '#wrapper_attributes' => ['class' => ['active-time']]
@@ -97,12 +97,12 @@ class DateExplain extends ControllerBase {
     return $render;
   }
 
-  function permittedCell($forbidden) {
-    $allowed = !$forbidden;
-    $class = $allowed ? 'neutral' : 'forbidden';
+  function permittedCell(array $access) {
+    $forbidden = in_array(FALSE, $access, TRUE);
+    $class = $forbidden ? 'forbidden' : 'neutral';
     $cell = [
       '#wrapper_attributes' => ['class' => [$class], 'rowspan' => 2],
-      '#markup' => $allowed ? $this->t('Neutral') : $this->t('New registrations forbidden'),
+      '#markup' => $forbidden ? $this->t('New registrations forbidden') : $this->t('Neutral'),
     ];
     return $cell;
   }

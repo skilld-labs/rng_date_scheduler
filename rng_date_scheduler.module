@@ -4,6 +4,7 @@ use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Access\AccessResult;
+use Drupal\rng_date_scheduler\EventDateAccess;
 
 /**
  * Implements hook_entity_type_build().
@@ -39,14 +40,13 @@ function rng_date_scheduler_entity_create_access(AccountInterface $account, $con
 
     $now = DrupalDateTime::createFromTimestamp(\Drupal::request()->server->get('REQUEST_TIME'));
 
-    $previous_after = FALSE;
-    foreach ($dates as $data) {
-      $date = $data['date'];
-      $before = $data['access']['before'] == '-1';
-      $after = $data['access']['after'] == '-1';
+    $previous_after = NULL;
+    foreach ($dates as $date) {
+      $before = $date->canAccessBefore();
+      $after = $date->canAccessBefore();
 
-      if ($now < $date) {
-        return AccessResult::forbiddenIf($before || $previous_after)
+      if ($now < $date->getDate()) {
+        return AccessResult::forbiddenIf(in_array(FALSE, [$previous_after, $before], TRUE))
           ->addCacheableDependency($event);
       }
 
@@ -63,6 +63,11 @@ function rng_date_scheduler_entity_create_access(AccountInterface $account, $con
     ->addCacheableDependency($event);
 }
 
+/**
+ * @param \Drupal\Core\Entity\EntityInterface $event
+ *
+ * @return \Drupal\rng_date_scheduler\EventDateAccess[]
+ */
 function rng_date_scheduler_get(EntityInterface $event) {
   /** @var \Drupal\rng\EventManagerInterface $event_manager */
   $event_manager = \Drupal::service('rng.event_manager');
@@ -72,24 +77,51 @@ function rng_date_scheduler_get(EntityInterface $event) {
   foreach ($event_type->getThirdPartySetting('rng_date_scheduler', 'fields', []) as $field) {
     if (isset($field['field_name'])) {
       $field_name = $field['field_name'];
-      if (isset($event->{$field_name}->date)) {
-        $access = $field['access'];
-        $dates[] = [
-          'field_name' => $field_name,
-          'date' => $event->{$field_name}->date,
-          'access' => $access,
-        ];
+
+      /** @var \Drupal\datetime\Plugin\Field\FieldType\DateTimeFieldItemList $field_item_list */
+      $field_item_list = $event->{$field_name};
+
+      if (isset($field_item_list->date)) {
+        /** @var DrupalDateTime $value */
+        $value = $field_item_list->date;
+
+        $date = new EventDateAccess();
+        $date
+          ->setFieldName($field_name)
+          ->setDate($value)
+          ->setAccessBefore($field['access']['before'] != -1)
+          ->setAccessAfter($field['access']['after'] != -1);
+
+        if ($field_item_list->getSetting('datetime_type') == 'date') {
+          $during = $field['access']['during'] != -1;
+
+          $date2 = clone $date;
+
+          $value->setTime(0, 0, 0);
+          $dates[] = $date->setDate($value)
+            ->setAccessAfter($during);
+
+          $value2 = clone $value;
+          $value2->modify('+1 day');
+          $dates[] = $date2->setDate($value2)
+            ->setAccessBefore($during);
+        }
+        else {
+          $dates[] = $date;
+        }
       }
     }
   }
 
   // Sort dates ascending.
   usort($dates, function($a, $b) {
-    if ($a['date'] == $b['date']) {
+    /** @var \Drupal\rng_date_scheduler\EventDateAccess $a */
+    /** @var \Drupal\rng_date_scheduler\EventDateAccess $b */
+    if ($a->getDate() == $b->getDate()) {
       return 0;
     }
     else {
-      return $a['date'] < $b['date'] ? -1 : 1;
+      return $a->getDate() < $b->getDate() ? -1 : 1;
     }
   });
 
