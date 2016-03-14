@@ -1,5 +1,6 @@
 <?php
 
+use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Access\AccessResult;
@@ -36,15 +37,15 @@ function rng_date_scheduler_entity_create_access(AccountInterface $account, $con
         ->addCacheableDependency($event);
     }
 
-    ksort($dates);
-    $now = \Drupal::request()->server->get('REQUEST_TIME');
+    $now = DrupalDateTime::createFromTimestamp(\Drupal::request()->server->get('REQUEST_TIME'));
 
     $previous_after = FALSE;
-    foreach ($dates as $timestamp => $access) {
-      $before = $access['before'] == '-1';
-      $after = $access['after'] == '-1';
+    foreach ($dates as $data) {
+      $date = $data['date'];
+      $before = $data['access']['before'] == '-1';
+      $after = $data['access']['after'] == '-1';
 
-      if ($now < $timestamp) {
+      if ($now < $date) {
         return AccessResult::forbiddenIf($before || $previous_after)
           ->addCacheableDependency($event);
       }
@@ -72,16 +73,25 @@ function rng_date_scheduler_get(EntityInterface $event) {
     if (isset($field['field_name'])) {
       $field_name = $field['field_name'];
       if (isset($event->{$field_name}->date)) {
-        /** @var \Drupal\Core\Datetime\DrupalDateTime $date */
-        $date = $event->{$field_name}->date;
         $access = $field['access'];
-        $timestamp = $date->format('U');
-        $dates[$timestamp] = $access;
+        $dates[] = [
+          'field_name' => $field_name,
+          'date' => $event->{$field_name}->date,
+          'access' => $access,
+        ];
       }
     }
   }
 
-  ksort($dates);
+  // Sort dates ascending.
+  usort($dates, function($a, $b) {
+    if ($a['date'] == $b['date']) {
+      return 0;
+    }
+    else {
+      return $a['date'] < $b['date'] ? -1 : 1;
+    }
+  });
 
   return $dates;
 }

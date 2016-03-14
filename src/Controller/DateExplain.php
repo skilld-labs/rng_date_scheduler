@@ -9,6 +9,7 @@ namespace Drupal\rng_date_scheduler\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Datetime\DrupalDateTime;
 
 /**
  * Provides dynamic tasks.
@@ -21,18 +22,19 @@ class DateExplain extends ControllerBase {
 //    $event_type = $event_manager->eventType($rng_event->getEntityTypeId(), $rng_event->bundle());
 
     $dates = [];
-    foreach (rng_date_scheduler_get($rng_event) as $timestamp => $access) {
+    foreach (rng_date_scheduler_get($rng_event) as $data) {
       $dates[] = [
-        'date' => $timestamp,
+        'fn' => $data['field_name'],
+        'date' => $data['date'],
         'actions' => [
-          'before' => $access['before'] == -1 ? 'forbidden' : 'neutral',
-          'after' => $access['after'] == -1 ? 'forbidden' : 'neutral',
+          'before' => $data['access']['before'] == -1 ? 'forbidden' : 'neutral',
+          'after' => $data['access']['after'] == -1 ? 'forbidden' : 'neutral',
         ],
       ];
     }
 
     $render = [];
-    $now = \Drupal::request()->server->get('REQUEST_TIME');
+    $now = DrupalDateTime::createFromTimestamp(\Drupal::request()->server->get('REQUEST_TIME'));
 
     $row_dates = [];
 
@@ -43,20 +45,25 @@ class DateExplain extends ControllerBase {
     $previous_after = NULL;
     $row = [];
     foreach ($dates as $date) {
+      /** @var \Drupal\datetime\Plugin\Field\FieldType\DateTimeFieldItemList $field_item_list */
+      $field_item_list = $rng_event->{$date['fn']};
+//      $d->getSettings();
+
       $before = $date['actions']['before'];
       $after = $date['actions']['after'];
-      $timestamp = $date['date'];
 
       $row[] = $this->permittedCell($previous_after == 'forbidden' || $before == 'forbidden');
 
-      $row_dates[]['#markup'] = \Drupal::service('date.formatter')->format($timestamp);
-      $row[]['#plain_text'] = $this->t('Date field name');
+      $row_dates[]['#plain_text'] = \Drupal::service('date.formatter')
+        ->format($date['date']->format('U'), 'long');
+
+      $row[]['#plain_text'] = $field_item_list->getFieldDefinition()
+        ->getLabel();
 
       $previous_after = $after;
     }
 
     $row[] = $this->permittedCell($previous_after == 'forbidden');
-
 
     $render['table'] = [
       '#type' => 'table',
@@ -67,6 +74,7 @@ class DateExplain extends ControllerBase {
     $row_indicator = [];
     $d = 0;
     for ($i = 0; $i < count($row); $i+=2) {
+      // !isset detects after last day, as the index does not exist.
       if (!$current && (!isset($dates[$d]) || $now < $dates[$d]['date'])) {
         $row_indicator[] = [
           '#markup' => $this->t('Now'),

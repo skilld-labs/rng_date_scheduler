@@ -129,13 +129,13 @@ class EventTypeDateSchedulerForm extends EntityForm {
           '#default_value' => $access['before'],
         ];
 
-        // Do not allow if field does not include time ('date')
         if ($field_definition->getSetting('datetime_type') == 'datetime') {
           $row[] = [
             '#plain_text' => $this->t('Not applicable'),
           ];
         }
         else {
+          // Does not include time.
           $row['during'] = [
             '#type' => 'checkbox',
             '#title' => $this->t('Deny new registrations'),

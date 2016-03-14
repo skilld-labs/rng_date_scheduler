@@ -25,8 +25,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 The module has not been thoroughly tested. Expect weird behaviour.
 
-The module currently only works with datetime fields (must have time, not 
-date-only) despite claims made by user interface ('during' checkboxes).
+The module currently only works with datetime fields (must have date and time,
+not date-only) despite claims made by user interface ('during' checkboxes).
 
 # Installation
 
