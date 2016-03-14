@@ -18,6 +18,7 @@ class DateExplain extends ControllerBase {
 
   public function eventDates(EntityInterface $rng_event) {
     $render = [];
+    $render['#cache']['tags'] = $rng_event->getCacheTagsToInvalidate();
     $render['#attached']['library'][] = 'rng_date_scheduler/rng_date_scheduler.user';
 
     $row = [];
@@ -108,6 +109,12 @@ class DateExplain extends ControllerBase {
       // @todo. Do not show 'Date' tab if no date fields are configured.
       // @todo. Remove this message.
       $messages[] = $this->t('No dates fields are configured for events of this type.');
+    }
+    else if (!count($dates)) {
+      $default_access = $event_type->getThirdPartySetting('rng_date_scheduler', 'default_access', 0);
+      if ($default_access == -1) {
+        $messages[] = $this->t('New registrations are forbidden because there are no dates.');
+      }
     }
 
     if ($messages) {
