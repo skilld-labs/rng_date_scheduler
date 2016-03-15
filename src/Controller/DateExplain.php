@@ -113,12 +113,10 @@ class DateExplain extends ControllerBase {
     }
 
     $messages = [];
-    $enabled_fields = 0;
 
     $fields = $this->eventDateProvider
       ->getFieldAccess($rng_event->getEntityTypeId(), $rng_event->bundle(), TRUE);
     foreach ($fields as $field_name => $field) {
-      $enabled_fields++;
       // Determine fields without dates.
       $field_item_list = $rng_event->{$field_name};
       if ($field_item_list && !count($field_item_list)) {
@@ -130,7 +128,7 @@ class DateExplain extends ControllerBase {
       }
     }
 
-    if (!$enabled_fields) {
+    if (!count($fields)) {
       // @todo. Do not show 'Date' tab if no date fields are configured.
       // @todo. Remove this message.
       $messages[] = $this->t('No dates fields are configured for events of this type.');
