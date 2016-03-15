@@ -66,11 +66,11 @@ class EventDateProvider implements EventDateProviderInterface {
         $date
           ->setFieldName($field_name)
           ->setDate($value)
-          ->setAccessBefore($field['access']['before'] != -1)
-          ->setAccessAfter($field['access']['after'] != -1);
+          ->setAccessBefore($field['access']['before'])
+          ->setAccessAfter($field['access']['after']);
 
         if ($field_item_list->getSetting('datetime_type') == 'date') {
-          $during = $field['access']['during'] != -1;
+          $during = $field['access']['during'];
 
           $date2 = clone $date;
 
@@ -111,7 +111,7 @@ class EventDateProvider implements EventDateProviderInterface {
     $dates = $this->getDates($event);
     if (!count($dates)) {
       $default_access = $this->getDefaultAccess($event->getEntityTypeId(), $event->bundle());
-      return AccessResult::forbiddenIf($default_access == -1)
+      return AccessResult::forbiddenIf($default_access === FALSE)
         ->addCacheableDependency($event);
     }
 

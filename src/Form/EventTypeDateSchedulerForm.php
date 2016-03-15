@@ -78,7 +78,7 @@ class EventTypeDateSchedulerForm extends EntityForm {
       '#type' => 'checkbox',
       '#title' => $this->t('Deny by default'),
       '#description' => $this->t('Deny new registrations if no dates are set on the event.'),
-      '#default_value' => $default_access == -1,
+      '#default_value' => $default_access === FALSE,
     ];
 
     $form['table'] = [
@@ -123,7 +123,7 @@ class EventTypeDateSchedulerForm extends EntityForm {
 
       $access = [];
       foreach (['before', 'during', 'after'] as $time) {
-        $access[$time] = isset($fields[$field_name]['access'][$time]) && $fields[$field_name]['access'][$time] == -1;
+        $access[$time] = isset($fields[$field_name]['access'][$time]) && $fields[$field_name]['access'][$time] === FALSE;
       }
 
       $row = [];
@@ -184,7 +184,7 @@ class EventTypeDateSchedulerForm extends EntityForm {
    */
   public function save(array $form, FormStateInterface $form_state) {
     $event_type = &$this->entity;
-    $default = $form_state->getValue('default') ? -1 : 0;
+    $default = $form_state->getValue('default') ? FALSE : NULL;
 
     $fields = [];
     foreach ($form_state->getValue('table') as $field_name => $row) {
@@ -194,7 +194,7 @@ class EventTypeDateSchedulerForm extends EntityForm {
 
       foreach (['before', 'during', 'after'] as $time) {
         $deny_registrations = !empty($row[$time]);
-        $field['access'][$time] = $deny_registrations ? -1 : 0;
+        $field['access'][$time] = $deny_registrations ? FALSE : NULL;
       }
 
       $fields[] = $field;

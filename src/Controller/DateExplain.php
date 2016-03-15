@@ -165,7 +165,7 @@ class DateExplain extends ControllerBase {
     else if (!count($dates)) {
       $default_access = $this->eventDateProvider
         ->getDefaultAccess($rng_event->getEntityTypeId(), $rng_event->bundle());
-      if ($default_access == -1) {
+      if ($default_access === FALSE) {
         $messages[] = $this->t('New registrations are forbidden because there are no dates.');
       }
     }

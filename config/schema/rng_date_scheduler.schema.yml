@@ -2,7 +2,7 @@ rng.event_type.*.*.third_party.rng_date_scheduler:
   type: mapping
   mapping:
     default_access:
-      type: integer
+      type: boolean
       label: 'Default'
     fields:
       type: sequence
@@ -20,11 +20,11 @@ rng_date_scheduler.field:
       type: mapping
       mapping:
         before:
-          type: integer
+          type: boolean
           label: 'Before'
         during:
-          type: integer
+          type: boolean
           label: 'During'
         after:
-          type: integer
+          type: boolean
           label: 'After'

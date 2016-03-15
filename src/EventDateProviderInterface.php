@@ -42,8 +42,8 @@ interface EventDateProviderInterface {
    * @param $bundle
    *   An event type' bundle.
    *
-   * @return int
-   *   @todo revise to bool|NULL
+   * @return boolean|NULL
+   *   FALSE if forbidden. NULL if neutral.
    */
   function getDefaultAccess($entity_type_id, $bundle);
 
