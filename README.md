@@ -1,7 +1,7 @@
 RNG date scheduler.
 
-Control whether a user can register based on current time in relation to date
-fields attached to an event entity.
+Control whether a user can register for an event based on the current time
+relative to date fields attached to the event entity.
 
 Copyright (C) 2016 [Daniel Phin](http://dpi.id.au) ([@dpi](https://www.drupal.org/u/dpi))
 
