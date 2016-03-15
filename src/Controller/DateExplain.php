@@ -20,12 +20,17 @@ use Drupal\Core\Cache\Cache;
 class DateExplain extends ControllerBase {
 
   /**
+   * The event date provider.
+   *
    * @var \Drupal\rng_date_scheduler\EventDateProviderInterface
    */
   protected $eventDateProvider;
 
   /**
-   * @inheritDoc
+   * Construct a new DateExplain controller.
+   *
+   * @param \Drupal\rng_date_scheduler\EventDateProviderInterface $event_date_provider
+   *   The event date provider.
    */
   function __construct(EventDateProviderInterface $event_date_provider) {
     $this->eventDateProvider = $event_date_provider;

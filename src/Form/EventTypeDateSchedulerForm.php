@@ -11,6 +11,7 @@ use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\rng_date_scheduler\EventDateProviderInterface;
 
 /**
  * Form for event type access defaults.
@@ -25,6 +26,13 @@ class EventTypeDateSchedulerForm extends EntityForm {
   protected $entityFieldManager;
 
   /**
+   * The event date provider.
+   *
+   * @var \Drupal\rng_date_scheduler\EventDateProviderInterface
+   */
+  protected $eventDateProvider;
+
+  /**
    * {@inheritdoc}
    *
    * @var \Drupal\rng\EventTypeInterface
@@ -36,9 +44,12 @@ class EventTypeDateSchedulerForm extends EntityForm {
    *
    * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
    *   The entity field manager.
+   * @param \Drupal\rng_date_scheduler\EventDateProviderInterface $event_date_provider
+   *   The event date provider.
    */
-  public function __construct(EntityFieldManagerInterface $entity_field_manager) {
+  public function __construct(EntityFieldManagerInterface $entity_field_manager, EventDateProviderInterface $event_date_provider) {
     $this->entityFieldManager = $entity_field_manager;
+    $this->eventDateProvider = $event_date_provider;
   }
 
   /**
@@ -46,7 +57,8 @@ class EventTypeDateSchedulerForm extends EntityForm {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity_field.manager')
+      $container->get('entity_field.manager'),
+      $container->get('rng_date_scheduler.event_dates')
     );
   }
 
@@ -58,13 +70,15 @@ class EventTypeDateSchedulerForm extends EntityForm {
     $event_type = &$this->entity;
 
     $field_definitions = $this->entityFieldManager
-      ->getFieldDefinitions($this->entity->getEventEntityTypeId(), $this->entity->getEventBundle());
+      ->getFieldDefinitions($event_type->getEventEntityTypeId(), $event_type->getEventBundle());
 
+    $default_access = $this->eventDateProvider
+      ->getDefaultAccess($event_type->getEventEntityTypeId(), $event_type->getEventBundle());
     $form['default'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Deny by default'),
       '#description' => $this->t('Deny new registrations if no dates are set on the event.'),
-      '#default_value' => $event_type->getThirdPartySetting('rng_date_scheduler', 'default_access') == -1,
+      '#default_value' => $default_access == -1,
     ];
 
     $form['table'] = [
@@ -98,75 +112,68 @@ class EventTypeDateSchedulerForm extends EntityForm {
       '#empty' => $this->t('There are no date fields attached to this entity type.'),
     ];
 
-    $fields = [];
-    $status = [];
-    foreach ($event_type->getThirdPartySetting('rng_date_scheduler', 'fields', []) as $field) {
-      if (isset($field['field_name'])) {
-        $field_name = $field['field_name'];
-        $status[$field_name] = !empty($field['status']);
-        $fields[$field_name] = $field['access'];
-      }
-    }
+    $fields = $this->eventDateProvider
+      ->getFieldAccess($event_type->getEventEntityTypeId(), $event_type->getEventBundle(), NULL);
 
     foreach ($field_definitions as $field_definition) {
-      $field_name = $field_definition->getName();
-      $field_type = $field_definition->getType();
-
-      if ($field_type == 'datetime') {
-        $access = [];
-        foreach (['before', 'during', 'after'] as $time) {
-          $access[$time] = isset($fields[$field_name][$time]) && $fields[$field_name][$time] == '-1';
-        }
-
-        $row = [];
-
-        $row['label'] = [
-          '#plain_text' => $field_definition->getLabel(),
-        ];
-
-        $description = $field_definition->getDescription() ?: $this->t('None');
-        $row['description'] = [
-          '#plain_text' => $description,
-        ];
-
-        $row['status'] = [
-          '#type' => 'checkbox',
-          '#title' => $this->t('Status'),
-          '#title_display' => 'invisible',
-          '#default_value' => $status[$field_name],
-        ];
-
-        $row['before'] = [
-          '#type' => 'checkbox',
-          '#title' => $this->t('Deny new registrations'),
-          '#description' => $this->t('Forbid creation of registrations before date in this field.'),
-          '#default_value' => $access['before'],
-        ];
-
-        if ($field_definition->getSetting('datetime_type') == 'datetime') {
-          $row[] = [
-            '#plain_text' => $this->t('Not applicable'),
-          ];
-        }
-        else {
-          // Does not include time.
-          $row['during'] = [
-            '#type' => 'checkbox',
-            '#title' => $this->t('Deny new registrations'),
-            '#description' => $this->t('Forbid creation of registrations within date in this field.'),
-            '#default_value' => $access['during'],
-          ];
-        }
-
-        $row['after'] = [
-          '#type' => 'checkbox',
-          '#title' => $this->t('Deny new registrations'),
-          '#description' => $this->t('Forbid creation of registrations after date in this field.'),
-          '#default_value' => $access['after'],
-        ];
-
-        $form['table'][$field_name] = $row;
+      if ($field_definition->getType() != 'datetime') {
+        continue;
       }
+      $field_name = $field_definition->getName();
+
+      $access = [];
+      foreach (['before', 'during', 'after'] as $time) {
+        $access[$time] = isset($fields[$field_name]['access'][$time]) && $fields[$field_name]['access'][$time] == -1;
+      }
+
+      $row = [];
+
+      $row['label'] = [
+        '#plain_text' => $field_definition->getLabel(),
+      ];
+
+      $description = $field_definition->getDescription() ?: $this->t('None');
+      $row['description'] = [
+        '#plain_text' => $description,
+      ];
+
+      $row['status'] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Status'),
+        '#title_display' => 'invisible',
+        '#default_value' => !empty($fields[$field_name]['status']),
+      ];
+
+      $row['before'] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Deny new registrations'),
+        '#description' => $this->t('Forbid creation of registrations before date in this field.'),
+        '#default_value' => $access['before'],
+      ];
+
+      if ($field_definition->getSetting('datetime_type') == 'datetime') {
+        $row[] = [
+          '#plain_text' => $this->t('Not applicable'),
+        ];
+      }
+      else {
+        // Does not include time.
+        $row['during'] = [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Deny new registrations'),
+          '#description' => $this->t('Forbid creation of registrations within date in this field.'),
+          '#default_value' => $access['during'],
+        ];
+      }
+
+      $row['after'] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Deny new registrations'),
+        '#description' => $this->t('Forbid creation of registrations after date in this field.'),
+        '#default_value' => $access['after'],
+      ];
+
+      $form['table'][$field_name] = $row;
     }
 
     return $form;
