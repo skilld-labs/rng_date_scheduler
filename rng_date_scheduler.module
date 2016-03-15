@@ -9,6 +9,8 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\rng\EventTypeInterface;
+use Drupal\Core\Url;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Access\AccessResult;
 
@@ -18,6 +20,25 @@ use Drupal\Core\Access\AccessResult;
 function rng_date_scheduler_entity_type_build(array &$entity_types) {
   /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
   $entity_types['event_type']->setFormClass('date_scheduler', 'Drupal\rng_date_scheduler\Form\EventTypeDateSchedulerForm');
+}
+
+/**
+ * Implements hook_entity_operation().
+ */
+function rng_date_scheduler_entity_operation(EntityInterface $entity) {
+  $operations = [];
+
+  if ($entity instanceof EventTypeInterface) {
+    $operations['date_scheduler'] = [
+      'title' => t('Date scheduler'),
+      'url' => Url::fromRoute('entity.event_type.date_scheduler', [
+        'event_type' => $entity->id(),
+      ]),
+      'weight' => 25,
+    ];
+  }
+
+  return $operations;
 }
 
 /**
