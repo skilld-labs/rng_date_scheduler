@@ -8,6 +8,8 @@
 namespace Drupal\rng_date_scheduler\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\rng_date_scheduler\EventDateProviderInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -20,6 +22,20 @@ use Drupal\Core\Cache\Cache;
 class DateExplain extends ControllerBase {
 
   /**
+   * The related request stack.
+   *
+   * @var \Symfony\Component\HttpFoundation\RequestStack
+   */
+  protected $requestStack;
+
+  /**
+   * The date formatter service.
+   *
+   * @var \Drupal\Core\Datetime\DateFormatterInterface
+   */
+  protected $dateFormatter;
+
+  /**
    * The event date provider.
    *
    * @var \Drupal\rng_date_scheduler\EventDateProviderInterface
@@ -29,10 +45,16 @@ class DateExplain extends ControllerBase {
   /**
    * Construct a new DateExplain controller.
    *
+   * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
+   *  The request stack.
+   * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
+   *    The date formatter service.
    * @param \Drupal\rng_date_scheduler\EventDateProviderInterface $event_date_provider
    *   The event date provider.
    */
-  function __construct(EventDateProviderInterface $event_date_provider) {
+  function __construct(RequestStack $request_stack, DateFormatterInterface $date_formatter, EventDateProviderInterface $event_date_provider) {
+    $this->requestStack = $request_stack;
+    $this->dateFormatter = $date_formatter;
     $this->eventDateProvider = $event_date_provider;
   }
 
@@ -41,6 +63,8 @@ class DateExplain extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
+      $container->get('request_stack'),
+      $container->get('date.formatter'),
       $container->get('rng_date_scheduler.event_dates')
     );
   }
@@ -68,7 +92,7 @@ class DateExplain extends ControllerBase {
 
       $row[] = $this->permittedCell([$previous_after, $before]);
 
-      $row_dates[]['#plain_text'] = \Drupal::service('date.formatter')
+      $row_dates[]['#plain_text'] = $this->dateFormatter
         ->format($date->getDate()->format('U'), 'long');
 
       $row[]['#plain_text'] = $field_item_list->getFieldDefinition()
@@ -85,7 +109,7 @@ class DateExplain extends ControllerBase {
     ];
 
     // Add the date indicator row.
-    $now = DrupalDateTime::createFromTimestamp(\Drupal::request()->server->get('REQUEST_TIME'));
+    $now = DrupalDateTime::createFromTimestamp($this->requestStack->getCurrentRequest()->server->get('REQUEST_TIME'));
     $row_indicator = [];
     $d = 0;
     $current = FALSE;
