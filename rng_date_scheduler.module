@@ -1,10 +1,16 @@
 <?php
 
-use Drupal\Core\Datetime\DrupalDateTime;
+/**
+ * @file
+ * RNG Date Scheduler.
+ *
+ * Adds date scheduler form class to event types, and access control for new
+ * registrations.
+ */
+
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Access\AccessResult;
-use Drupal\rng_date_scheduler\EventDateAccess;
 
 /**
  * Implements hook_entity_type_build().
@@ -26,106 +32,10 @@ function rng_date_scheduler_entity_create_access(AccountInterface $account, $con
   }
 
   if ($event instanceof EntityInterface) {
-    $result = _rng_date_scheduler_entity_create_access($event);
-    return $result->addCacheableDependency($event);
+    /** @var \Drupal\rng_date_scheduler\EventDateProviderInterface $event_date_provider */
+    $event_date_provider = \Drupal::service('rng_date_scheduler.event_dates');
+    return $event_date_provider->getRegistrationCreateAccess($event);
   }
 
   return AccessResult::neutral();
-}
-
-function _rng_date_scheduler_entity_create_access(EntityInterface $event) {
-  /** @var \Drupal\rng\EventManagerInterface $event_manager */
-  $event_manager = \Drupal::service('rng.event_manager');
-  $event_type = $event_manager->eventType($event->getEntityTypeId(), $event->bundle());
-
-  $dates = rng_date_scheduler_get($event);
-
-  if (!count($dates)) {
-    $default_access = $event_type->getThirdPartySetting('rng_date_scheduler', 'default_access', 0);
-    return AccessResult::forbiddenIf($default_access == -1);
-  }
-
-  $now = DrupalDateTime::createFromTimestamp(\Drupal::request()->server->get('REQUEST_TIME'));
-
-  $previous_after = NULL;
-  foreach ($dates as $date) {
-    $before = $date->canAccessBefore();
-    $after = $date->canAccessAfter();
-
-    if ($now < $date->getDate()) {
-      // If this is not the last date slot, add max age until the date.
-      $time_until = $date->getDate()->format('U') - $now->format('U');
-      return AccessResult::forbiddenIf(in_array(FALSE, [$previous_after, $before], TRUE))
-        ->setCacheMaxAge($time_until);
-    }
-
-    $previous_after = $after;
-  }
-
-  return AccessResult::forbiddenIf($previous_after === FALSE);
-}
-
-/**
- * @param \Drupal\Core\Entity\EntityInterface $event
- *
- * @return \Drupal\rng_date_scheduler\EventDateAccess[]
- */
-function rng_date_scheduler_get(EntityInterface $event) {
-  /** @var \Drupal\rng\EventManagerInterface $event_manager */
-  $event_manager = \Drupal::service('rng.event_manager');
-  $event_type = $event_manager->eventType($event->getEntityTypeId(), $event->bundle());
-
-  $dates = [];
-  foreach ($event_type->getThirdPartySetting('rng_date_scheduler', 'fields', []) as $field) {
-    if (isset($field['field_name']) && !empty($field['status'])) {
-      $field_name = $field['field_name'];
-
-      /** @var \Drupal\datetime\Plugin\Field\FieldType\DateTimeFieldItemList $field_item_list */
-      $field_item_list = $event->{$field_name};
-
-      if (isset($field_item_list->date)) {
-        /** @var DrupalDateTime $value */
-        $value = $field_item_list->date;
-
-        $date = new EventDateAccess();
-        $date
-          ->setFieldName($field_name)
-          ->setDate($value)
-          ->setAccessBefore($field['access']['before'] != -1)
-          ->setAccessAfter($field['access']['after'] != -1);
-
-        if ($field_item_list->getSetting('datetime_type') == 'date') {
-          $during = $field['access']['during'] != -1;
-
-          $date2 = clone $date;
-
-          $value->setTime(0, 0, 0);
-          $dates[] = $date->setDate($value)
-            ->setAccessAfter($during);
-
-          $value2 = clone $value;
-          $value2->modify('+1 day');
-          $dates[] = $date2->setDate($value2)
-            ->setAccessBefore($during);
-        }
-        else {
-          $dates[] = $date;
-        }
-      }
-    }
-  }
-
-  // Sort dates ascending.
-  usort($dates, function($a, $b) {
-    /** @var \Drupal\rng_date_scheduler\EventDateAccess $a */
-    /** @var \Drupal\rng_date_scheduler\EventDateAccess $b */
-    if ($a->getDate() == $b->getDate()) {
-      return 0;
-    }
-    else {
-      return $a->getDate() < $b->getDate() ? -1 : 1;
-    }
-  });
-
-  return $dates;
 }

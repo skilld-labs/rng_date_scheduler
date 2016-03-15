@@ -8,26 +8,52 @@
 namespace Drupal\rng_date_scheduler\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\rng_date_scheduler\EventDateProviderInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\Core\Cache\Cache;
 
 /**
  * Provides dynamic tasks.
  */
 class DateExplain extends ControllerBase {
 
+  /**
+   * @var \Drupal\rng_date_scheduler\EventDateProviderInterface
+   */
+  protected $eventDateProvider;
+
+  /**
+   * @inheritDoc
+   */
+  function __construct(EventDateProviderInterface $event_date_provider) {
+    $this->eventDateProvider = $event_date_provider;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('rng_date_scheduler.event_dates')
+    );
+  }
+
   public function eventDates(EntityInterface $rng_event) {
     $build = [];
-    $build['#cache']['keys'] = ['rng_date_explain', $rng_event->getEntityTypeId(), $rng_event->id()];
+    $build['#cache']['keys'] = ['rng_date_scheduler', 'event_explain', $rng_event->getEntityTypeId(), $rng_event->id()];
     $build['#cache']['tags'] = $rng_event->getCacheTagsToInvalidate();
     $build['#cache']['contexts'] = ['url'];
     $build['#attached']['library'][] = 'rng_date_scheduler/rng_date_scheduler.user';
+
+    $max_age = Cache::PERMANENT;
 
     $row = [];
     $row_dates = [];
 
     $previous_after = NULL;
-    $dates = rng_date_scheduler_get($rng_event);
+    $dates = $this->eventDateProvider->getDates($rng_event);
     foreach ($dates as $date) {
       /** @var \Drupal\datetime\Plugin\Field\FieldType\DateTimeFieldItemList $field_item_list */
       $field_item_list = $rng_event->{$date->getFieldName()};
@@ -59,8 +85,11 @@ class DateExplain extends ControllerBase {
     $d = 0;
     $current = FALSE;
     for ($i = 0; $i < count($row); $i += 2) {
-      // !isset detects after last day, as the index does not exist.
-      if (!$current && (!isset($dates[$d]) || $now < $dates[$d]->getDate())) {
+      $is_last = !isset($dates[$d]);
+      if (!$current && ($is_last || $now < $dates[$d]->getDate())) {
+        if (!$is_last) {
+          $max_age = $dates[$d]->getDate()->format('U') - $now->format('U');
+        }
         $row_indicator[] = [
           '#markup' => $this->t('Now'),
           '#wrapper_attributes' => ['class' => ['active-time']]
@@ -84,26 +113,20 @@ class DateExplain extends ControllerBase {
     }
 
     $messages = [];
-
-    /** @var \Drupal\rng\EventManagerInterface $event_manager */
-    $event_manager = \Drupal::service('rng.event_manager');
-    $event_type = $event_manager->eventType($rng_event->getEntityTypeId(), $rng_event->bundle());
-
-    $fields = $event_type->getThirdPartySetting('rng_date_scheduler', 'fields', []);
     $enabled_fields = 0;
-    foreach ($fields as $field) {
-      if (isset($field['field_name']) && !empty($field['status'])) {
-        $enabled_fields++;
-        // Determine fields without dates.
-        $field_name = $field['field_name'];
-        $field_item_list = $rng_event->{$field_name};
-        if ($field_item_list && !count($field_item_list)) {
-          $field_label = $field_item_list->getFieldDefinition()
-            ->getLabel();
-          $messages[] = $this->t('%label is not used as it does not contain a date.', [
-            '%label' => $field_label,
-          ]);
-        }
+
+    $fields = $this->eventDateProvider
+      ->getFieldAccess($rng_event->getEntityTypeId(), $rng_event->bundle(), TRUE);
+    foreach ($fields as $field_name => $field) {
+      $enabled_fields++;
+      // Determine fields without dates.
+      $field_item_list = $rng_event->{$field_name};
+      if ($field_item_list && !count($field_item_list)) {
+        $field_label = $field_item_list->getFieldDefinition()
+          ->getLabel();
+        $messages[] = $this->t('%label is not used as it does not contain a date.', [
+          '%label' => $field_label,
+        ]);
       }
     }
 
@@ -113,7 +136,8 @@ class DateExplain extends ControllerBase {
       $messages[] = $this->t('No dates fields are configured for events of this type.');
     }
     else if (!count($dates)) {
-      $default_access = $event_type->getThirdPartySetting('rng_date_scheduler', 'default_access', 0);
+      $default_access = $this->eventDateProvider
+        ->getDefaultAccess($rng_event->getEntityTypeId(), $rng_event->bundle());
       if ($default_access == -1) {
         $messages[] = $this->t('New registrations are forbidden because there are no dates.');
       }
@@ -126,6 +150,8 @@ class DateExplain extends ControllerBase {
         '#items' => $messages,
       ];
     }
+
+    $build['#cache']['max-age'] = $max_age;
 
     return $build;
   }

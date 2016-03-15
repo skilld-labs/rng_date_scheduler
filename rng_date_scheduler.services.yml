@@ -4,3 +4,7 @@ services:
     arguments: ['@entity_type.manager', '@rng.event_manager']
     tags:
       - { name: event_subscriber }
+  rng_date_scheduler.event_dates:
+    class: Drupal\rng_date_scheduler\EventDateProvider
+    arguments: ['@request_stack', '@rng.event_manager']
+    parent: container.trait
