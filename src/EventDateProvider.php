@@ -142,7 +142,7 @@ class EventDateProvider implements EventDateProviderInterface {
    */
   function getDefaultAccess($entity_type_id, $bundle) {
     $event_type = $this->eventManager->eventType($entity_type_id, $bundle);
-    return $event_type->getThirdPartySetting('rng_date_scheduler', 'default_access', 0);
+    return $event_type->getThirdPartySetting('rng_date_scheduler', 'default_access', FALSE);
   }
 
   /**
