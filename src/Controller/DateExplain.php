@@ -73,7 +73,7 @@ class DateExplain extends ControllerBase {
     $build = [];
     $build['#cache']['keys'] = ['rng_date_scheduler', 'event_explain', $rng_event->getEntityTypeId(), $rng_event->id()];
     $build['#cache']['tags'] = $rng_event->getCacheTagsToInvalidate();
-    $build['#cache']['contexts'] = ['url'];
+    $build['#cache']['contexts'] = ['rng_event'];
     $build['#attached']['library'][] = 'rng_date_scheduler/rng_date_scheduler.user';
 
     $max_age = Cache::PERMANENT;
