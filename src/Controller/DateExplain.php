@@ -162,7 +162,8 @@ class DateExplain extends ControllerBase {
       // @todo. Remove this message.
       $messages[] = $this->t('No dates fields are configured for events of this type.');
     }
-    else if (!count($dates)) {
+
+    if (!count($dates)) {
       $default_access = $this->eventDateProvider
         ->getDefaultAccess($rng_event->getEntityTypeId(), $rng_event->bundle());
       if ($default_access === FALSE) {
