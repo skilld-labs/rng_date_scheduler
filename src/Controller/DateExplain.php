@@ -10,6 +10,7 @@ namespace Drupal\rng_date_scheduler\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\rng\EventManagerInterface;
 use Drupal\rng_date_scheduler\EventDateProviderInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -36,6 +37,13 @@ class DateExplain extends ControllerBase {
   protected $dateFormatter;
 
   /**
+   * The RNG event manager.
+   *
+   * @var \Drupal\rng\EventManagerInterface
+   */
+  protected $eventManager;
+
+  /**
    * The event date provider.
    *
    * @var \Drupal\rng_date_scheduler\EventDateProviderInterface
@@ -49,12 +57,15 @@ class DateExplain extends ControllerBase {
    *  The request stack.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
    *    The date formatter service.
+   * @param \Drupal\rng\EventManagerInterface $event_manager
+   *   The RNG event manager.
    * @param \Drupal\rng_date_scheduler\EventDateProviderInterface $event_date_provider
    *   The event date provider.
    */
-  function __construct(RequestStack $request_stack, DateFormatterInterface $date_formatter, EventDateProviderInterface $event_date_provider) {
+  function __construct(RequestStack $request_stack, DateFormatterInterface $date_formatter, EventManagerInterface $event_manager, EventDateProviderInterface $event_date_provider) {
     $this->requestStack = $request_stack;
     $this->dateFormatter = $date_formatter;
+    $this->eventManager = $event_manager;
     $this->eventDateProvider = $event_date_provider;
   }
 
@@ -65,6 +76,7 @@ class DateExplain extends ControllerBase {
     return new static(
       $container->get('request_stack'),
       $container->get('date.formatter'),
+      $container->get('rng.event_manager'),
       $container->get('rng_date_scheduler.event_dates')
     );
   }
@@ -77,6 +89,10 @@ class DateExplain extends ControllerBase {
     $build['#attached']['library'][] = 'rng_date_scheduler/rng_date_scheduler.user';
 
     $max_age = Cache::PERMANENT;
+
+    if ($event_type = $this->eventManager->eventType($rng_event->getEntityTypeId(), $rng_event->bundle())) {
+      $build['#cache']['tags'] = Cache::mergeTags($build['#cache']['tags'], $event_type->getCacheTagsToInvalidate());
+    }
 
     $row = [];
     $row_dates = [];
