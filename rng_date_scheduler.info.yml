@@ -1,4 +1,4 @@
-name: RNG Date Scheduler (Experimental)
+name: RNG Date Scheduler
 type: module
 description: 'Control whether a user can register based on current time in relation to date fields attached to an event entity.'
 package: RNG
