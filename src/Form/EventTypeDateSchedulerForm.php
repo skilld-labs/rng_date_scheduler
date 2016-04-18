@@ -149,6 +149,11 @@ class EventTypeDateSchedulerForm extends EntityForm {
         '#title' => $this->t('Deny new registrations'),
         '#description' => $this->t('Forbid creation of registrations before date in this field.'),
         '#default_value' => $access['before'],
+        '#states' => [
+          'disabled' => [
+            ':input[name="table[' . $field_name . '][status]"]' => ['checked' => FALSE],
+          ],
+        ],
       ];
 
       if ($field_definition->getSetting('datetime_type') == 'datetime') {
@@ -163,6 +168,11 @@ class EventTypeDateSchedulerForm extends EntityForm {
           '#title' => $this->t('Deny new registrations'),
           '#description' => $this->t('Forbid creation of registrations within date in this field.'),
           '#default_value' => $access['during'],
+          '#states' => [
+            'disabled' => [
+              ':input[name="table[' . $field_name . '][status]"]' => ['checked' => FALSE],
+            ],
+          ],
         ];
       }
 
@@ -171,6 +181,11 @@ class EventTypeDateSchedulerForm extends EntityForm {
         '#title' => $this->t('Deny new registrations'),
         '#description' => $this->t('Forbid creation of registrations after date in this field.'),
         '#default_value' => $access['after'],
+        '#states' => [
+          'disabled' => [
+            ':input[name="table[' . $field_name . '][status]"]' => ['checked' => FALSE],
+          ],
+        ],
       ];
 
       $form['table'][$field_name] = $row;
