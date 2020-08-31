@@ -1,4 +1,4 @@
-rng.event_type.*.*.third_party.rng_date_scheduler:
+rng.rng_event_type.*.*.third_party.rng_date_scheduler:
   type: mapping
   mapping:
     default_access:
