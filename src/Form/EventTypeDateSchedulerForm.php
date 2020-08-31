@@ -220,7 +220,7 @@ class EventTypeDateSchedulerForm extends EntityForm {
       ->setThirdPartySetting('rng_date_scheduler', 'fields', $fields)
       ->save();
 
-    drupal_set_message($this->t('Date settings saved.'));
+    $this->messenger()->addStatus($this->t('Date settings saved.'));
   }
 
   /**
