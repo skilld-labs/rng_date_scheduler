@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\rng_date_scheduler\Plugin\Derivative\LocalTasks.
- */
-
 namespace Drupal\rng_date_scheduler\Plugin\Derivative;
 
 use Drupal\Component\Plugin\Derivative\DeriverBase;
@@ -60,11 +55,11 @@ class LocalTasks extends DeriverBase implements ContainerDeriverInterface {
       if ($this->routeProvider->getRouteByName("entity.$entity_type.canonical")) {
         $event_default = "rng.event.$entity_type.event.default";
 
-        $this->derivatives["rng.event.$entity_type.event.date_scheduler"] = array(
+        $this->derivatives["rng.event.$entity_type.event.date_scheduler"] = [
           'title' => t('Dates'),
           'route_name' => "rng.event.$entity_type.date_scheduler",
           'parent_id' => 'rng.local_tasks:' . $event_default,
-        );
+        ];
       }
     }
 

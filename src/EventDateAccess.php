@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\rng_date_scheduler\EventDateAccess.
- */
-
 namespace Drupal\rng_date_scheduler;
 
 use Drupal\Core\Datetime\DrupalDateTime;
@@ -14,51 +9,116 @@ use Drupal\Core\Datetime\DrupalDateTime;
  */
 class EventDateAccess {
 
+  /**
+   * Date field name.
+   *
+   * @var string
+   */
   protected $fieldName;
 
   /**
-   * @var \Drupal\Core\Datetime\DrupalDateTime $date
+   * Date object.
+   *
+   * @var \Drupal\Core\Datetime\DrupalDateTime
    */
   protected $date;
 
-  protected $access_before;
-  protected $access_after;
+  /**
+   * Can be accessed before date.
+   *
+   * @var bool
+   */
+  protected $accessBefore;
 
-  function getFieldName() {
+  /**
+   * Can be accessed after date.
+   *
+   * @var bool
+   */
+  protected $accessAfter;
+
+  /**
+   * Get date field name.
+   *
+   * @return string
+   *   Date field name.
+   */
+  public function getFieldName() {
     return $this->fieldName;
   }
 
-  function setFieldName($field_name) {
+  /**
+   * Set date field name.
+   *
+   * @param string $field_name
+   *   Date field name.
+   */
+  public function setFieldName($field_name) {
     $this->fieldName = $field_name;
     return $this;
   }
 
-  function getDate() {
+  /**
+   * Get date.
+   *
+   * @return \Drupal\Core\Datetime\DrupalDateTime
+   *   Date object.
+   */
+  public function getDate() {
     return $this->date;
   }
 
-  function setDate(DrupalDateTime $date) {
+  /**
+   * Set date.
+   *
+   * @param \Drupal\Core\Datetime\DrupalDateTime $date
+   *   Date object.
+   */
+  public function setDate(DrupalDateTime $date) {
     $this->date = $date;
     return $this;
   }
 
-  function canAccessBefore() {
-    return $this->access_before;
+  /**
+   * Check if event can be accessed before date.
+   *
+   * @return bool
+   *   Can be accessed before date.
+   */
+  public function canAccessBefore() {
+    return $this->accessBefore;
   }
 
-  function setAccessBefore($access_before) {
-    $this->access_before = $access_before;
+  /**
+   * Set if event can be accessed before date.
+   *
+   * @param bool $access_before
+   *   Can be accessed before date.
+   */
+  public function setAccessBefore($access_before) {
+    $this->accessBefore = $access_before;
     return $this;
   }
 
-  function canAccessAfter() {
-    return $this->access_after;
+  /**
+   * Check if event can be accessed after date.
+   *
+   * @return bool
+   *   Can be accessed after date.
+   */
+  public function canAccessAfter() {
+    return $this->accessAfter;
   }
 
-  function setAccessAfter($access_after) {
-    $this->access_after = $access_after;
+  /**
+   * Set if event can be accessed after date.
+   *
+   * @param bool $access_after
+   *   Can be accessed after date.
+   */
+  public function setAccessAfter($access_after) {
+    $this->accessAfter = $access_after;
     return $this;
   }
-
 
 }

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\rng_date_scheduler\EventDateProvider.
- */
-
 namespace Drupal\rng_date_scheduler;
 
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
@@ -39,7 +34,7 @@ class EventDateProvider implements EventDateProviderInterface {
    * Constructs a new EntityIsEventCheck object.
    *
    * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
-   *  The request stack.
+   *   The request stack.
    * @param \Drupal\rng\EventManagerInterface $event_manager
    *   The RNG event manager.
    */
@@ -49,17 +44,17 @@ class EventDateProvider implements EventDateProviderInterface {
   }
 
   /**
-   * @inheritdoc
+   * {@inheritdoc}
    */
-  function getDates(EntityInterface $event) {
+  public function getDates(EntityInterface $event) {
     $dates = [];
     $field_access = $this->getFieldAccess($event->getEntityTypeId(), $event->bundle(), TRUE);
     foreach ($field_access as $field_name => $field) {
-      /** @var \Drupal\datetime\Plugin\Field\FieldType\DateTimeFieldItemList $field_item_list */
+      /* @var \Drupal\datetime\Plugin\Field\FieldType\DateTimeFieldItemList $field_item_list */
       $field_item_list = $event->{$field_name};
 
       if (isset($field_item_list->date)) {
-        /** @var DrupalDateTime $value */
+        /** @var \Drupal\Core\Datetime\DrupalDateTime $value */
         $value = $field_item_list->date;
 
         $date = new EventDateAccess();
@@ -90,7 +85,7 @@ class EventDateProvider implements EventDateProviderInterface {
     }
 
     // Sort dates ascending.
-    usort($dates, function($a, $b) {
+    usort($dates, function ($a, $b) {
       /** @var \Drupal\rng_date_scheduler\EventDateAccess $a */
       /** @var \Drupal\rng_date_scheduler\EventDateAccess $b */
       if ($a->getDate() == $b->getDate()) {
@@ -105,9 +100,9 @@ class EventDateProvider implements EventDateProviderInterface {
   }
 
   /**
-   * @inheritdoc
+   * {@inheritdoc}
    */
-  function getRegistrationCreateAccess(EntityInterface $event) {
+  public function getRegistrationCreateAccess(EntityInterface $event) {
     $dates = $this->getDates($event);
     if (!count($dates)) {
       $default_access = $this->getDefaultAccess($event->getEntityTypeId(), $event->bundle());
@@ -138,17 +133,17 @@ class EventDateProvider implements EventDateProviderInterface {
   }
 
   /**
-   * @inheritdoc
+   * {@inheritdoc}
    */
-  function getDefaultAccess($entity_type_id, $bundle) {
+  public function getDefaultAccess($entity_type_id, $bundle) {
     $event_type = $this->eventManager->eventType($entity_type_id, $bundle);
     return $event_type->getThirdPartySetting('rng_date_scheduler', 'default_access', NULL);
   }
 
   /**
-   * @inheritdoc
+   * {@inheritdoc}
    */
-  function getFieldAccess($entity_type_id, $bundle, $status = TRUE) {
+  public function getFieldAccess($entity_type_id, $bundle, $status = TRUE) {
     $event_type = $this->eventManager->eventType($entity_type_id, $bundle);
 
     $field_access = [];

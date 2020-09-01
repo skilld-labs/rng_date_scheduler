@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\rng_date_scheduler\Controller\DateExplain.
- */
-
 namespace Drupal\rng_date_scheduler\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
@@ -54,15 +49,15 @@ class DateExplain extends ControllerBase {
    * Construct a new DateExplain controller.
    *
    * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
-   *  The request stack.
+   *   The request stack.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
-   *    The date formatter service.
+   *   The date formatter service.
    * @param \Drupal\rng\EventManagerInterface $event_manager
    *   The RNG event manager.
    * @param \Drupal\rng_date_scheduler\EventDateProviderInterface $event_date_provider
    *   The event date provider.
    */
-  function __construct(RequestStack $request_stack, DateFormatterInterface $date_formatter, EventManagerInterface $event_manager, EventDateProviderInterface $event_date_provider) {
+  public function __construct(RequestStack $request_stack, DateFormatterInterface $date_formatter, EventManagerInterface $event_manager, EventDateProviderInterface $event_date_provider) {
     $this->requestStack = $request_stack;
     $this->dateFormatter = $date_formatter;
     $this->eventManager = $event_manager;
@@ -81,9 +76,23 @@ class DateExplain extends ControllerBase {
     );
   }
 
+  /**
+   * Build form with event dates.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $rng_event
+   *   An event entity.
+   *
+   * @return array
+   *   A render array.
+   */
   public function eventDates(EntityInterface $rng_event) {
     $build = [];
-    $build['#cache']['keys'] = ['rng_date_scheduler', 'event_explain', $rng_event->getEntityTypeId(), $rng_event->id()];
+    $build['#cache']['keys'] = [
+      'rng_date_scheduler',
+      'event_explain',
+      $rng_event->getEntityTypeId(),
+      $rng_event->id(),
+    ];
     $build['#cache']['tags'] = $rng_event->getCacheTagsToInvalidate();
     $build['#cache']['contexts'] = ['rng_event'];
     $build['#attached']['library'][] = 'rng_date_scheduler/rng_date_scheduler.user';
@@ -121,7 +130,7 @@ class DateExplain extends ControllerBase {
 
     $build['table'] = [
       '#type' => 'table',
-      '#attributes' => ['class' => 'rng-date-scheduler-explain']
+      '#attributes' => ['class' => 'rng-date-scheduler-explain'],
     ];
 
     // Add the date indicator row.
@@ -137,7 +146,7 @@ class DateExplain extends ControllerBase {
         }
         $row_indicator[] = [
           '#markup' => $this->t('Now'),
-          '#wrapper_attributes' => ['class' => ['active-time']]
+          '#wrapper_attributes' => ['class' => ['active-time']],
         ];
         $current = TRUE;
       }
@@ -200,7 +209,16 @@ class DateExplain extends ControllerBase {
     return $build;
   }
 
-  function permittedCell(array $access) {
+  /**
+   * Get cell contents.
+   *
+   * @param array $access
+   *   Access info array.
+   *
+   * @return array
+   *   A render array.
+   */
+  protected function permittedCell(array $access) {
     $forbidden = in_array(FALSE, $access, TRUE);
     $class = $forbidden ? 'forbidden' : 'neutral';
     $cell = [

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\rng_date_scheduler\Routing\RouteSubscriber.
- */
-
 namespace Drupal\rng_date_scheduler\Routing;
 
 use Drupal\Core\Routing\RouteSubscriberBase;
