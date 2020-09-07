@@ -19,7 +19,7 @@ use Drupal\Core\Access\AccessResult;
  */
 function rng_date_scheduler_entity_type_build(array &$entity_types) {
   if (!empty($entity_types['rng_event_type'])) {
-    /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
+    /* @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
     $entity_types['rng_event_type']->setFormClass('date_scheduler', 'Drupal\rng_date_scheduler\Form\EventTypeDateSchedulerForm');
   }
 }

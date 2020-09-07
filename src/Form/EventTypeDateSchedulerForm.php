@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\rng_date_scheduler\Form\EventTypeDateSchedulerForm.
- */
-
 namespace Drupal\rng_date_scheduler\Form;
 
 use Drupal\Core\Entity\EntityForm;
